@@ -1,0 +1,45 @@
+name: Sync Main to Indexed
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+
+  sync-main-to-indexed:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout Main Branch
+      uses: actions/checkout@v2
+      with:
+        ref: main
+        
+    - name: Set Git Identity
+      run: |
+        git config --global user.email "git@hanako.me"
+        git config --global user.name "Hanako"
+        
+    - name: Switch to Indexed Branch
+      run: |
+        git fetch --prune origin
+        if git show-ref --verify --quiet "refs/heads/indexed"; then
+          git branch -D indexed
+        fi
+        git checkout -b indexed
+        
+    - name: Run index.sh
+      working-directory: ${{ github.workspace }}
+      run: |
+        chmod +x index.sh
+        ./index.sh
+        rm .gitignore
+        
+    - name: Commit and Push to Indexed Branch
+      run: |
+        git add .
+        git commit -m "Update from main branch"
+        git push -f origin indexed
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
